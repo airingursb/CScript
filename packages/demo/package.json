@@ -1,0 +1,27 @@
+{
+  "name": "@cscript/demo",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "types": "es/index.d.ts",
+  "scripts": {
+    "lint:ts": "npx tsc -p tsconfig.json",
+    "build": "rm -rf ./es && rm -rf ./dist && ../../node_modules/.bin/rollup -c ./build/rollup.config.js"
+  },
+  "author": "Airing",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airingursb/CScript"
+  },
+  "directories": {
+    "src": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "dist",
+    "es",
+    "README.md"
+  ]
+}
