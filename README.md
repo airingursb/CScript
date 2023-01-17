@@ -1,0 +1,2 @@
+# CScript
+CScript Language
