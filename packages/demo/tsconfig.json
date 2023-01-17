@@ -12,6 +12,7 @@
     "declaration": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
+    "noEmitHelpers": false,
     "jsx": "preserve",
     "sourceMap": true,
     "lib": [

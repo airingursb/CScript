@@ -8,7 +8,8 @@
     "preinstall": "npx only-allow pnpm",
     "lint": "eslint . --ext .ts,.tsx --quiet",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
-    "lint:ts": "sh ./scripts/ts-lint.sh",
+    "lint:ts": "sh ./scripts/lint-ts.sh",
+    "exec:ts": "sh ./scripts/exec-ts.sh",
     "build": "sh ./scripts/build.sh"
   },
   "keywords": [],
@@ -25,8 +26,7 @@
       "npm run ts-lint",
       "git add"
     ],
-    "packages/**/dist/**/*.js": [
-    ]
+    "packages/**/dist/**/*.js": []
   },
   "repository": {
     "type": "git",
@@ -70,6 +70,7 @@
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-terser": "^7.0.2",
     "ts-jest": "^27.1.4",
+    "ts-node": "^10.9.1",
     "tslib": "^2.4.0",
     "typedoc": "^0.22.4",
     "typescript": "^4.6.4"
