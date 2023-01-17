@@ -1,3 +1,2 @@
 cd packages/demo
-cd src/
-ts-node $1
+node dist/$1 $2

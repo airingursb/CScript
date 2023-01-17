@@ -2,7 +2,7 @@
   "compilerOptions": {
     "allowJs": true,
     "strict": true,
-    "module": "esnext",
+    "module": "commonjs",
     "baseUrl": "./",
     "typeRoots": [
       "../../typings/index.d.ts"

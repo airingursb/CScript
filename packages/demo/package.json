@@ -7,7 +7,7 @@
   "types": "es/index.d.ts",
   "scripts": {
     "lint:ts": "npx tsc -p tsconfig.json",
-    "build": "rm -rf ./es && rm -rf ./dist && ../../node_modules/.bin/rollup -c ./build/rollup.config.js"
+    "build": "rm -rf ./dist && tsc ./src/index.ts --outDir ./dist --module commonjs"
   },
   "author": "Airing",
   "license": "MIT",
@@ -23,5 +23,8 @@
     "dist",
     "es",
     "README.md"
-  ]
+  ],
+  "devDependencies": {
+    "@types/node": "^18.0.2"
+  }
 }

@@ -2,19 +2,15 @@
  * 1.递归下降的方法做词法分析；
  * 2.语义分析中的引用消解（找到函数的定义）；
  * 3.通过遍历AST的方法，执行程序。
+ * 4.新增词法分析；
+ * 5.升级语法分析为LL算法，因此需要知道如何使用First和Follow集合。
  *
- * 语法规则暂时是极其精简的，只能定义函数和调用函数。定义函数的时候，还不能有参数。
- * prog = (functionDecl | functionCall)* ;
- * functionDecl: "function" Identifier "(" ")"  functionBody;
- * functionBody : '{' functionCall* '}' ;
- * functionCall : Identifier '(' parameterList? ')' ;
- * parameterList : StringLiteral (',' StringLiteral)* ;
+ * 目前词法规则是比较精简的，比如不考虑Unicode。
+ * Identifier: [a-zA-Z_][a-zA-Z0-9_]* ;
  */
 
 /////////////////////////////////////////////////////////////////////////
 // 词法分析
-// 没有提供词法分析器，直接提供了一个 Token 串。语法分析程序可以从Token串中依次读出
-// 一个个Token，也可以重新定位 Token 串的当前读取位置。
 
 // Token的类型
 enum TokenKind {
@@ -32,61 +28,254 @@ interface Token {
   text: string;
 }
 
-// 一个Token数组，代表了下面这段程序做完词法分析后的结果：
-/*
-//一个函数的声明，这个函数很简单，只打印"Hello World!"
-function sayHello(){
-    println("Hello World!");
+/**
+ * 一个字符串流。其操作为：
+ * peek(): 预读下一个字符，但不移动指针；
+ * next(): 读取下一个字符，并且移动指针；
+ * eof(): 判断是否已经到了结尾。
+ */
+class CharStream {
+  data: string;
+  pos: number = 0;
+  line: number = 1;
+  col: number = 0;
+
+  constructor(data: string) {
+    this.data = data;
+  }
+
+  peek(): string {
+    return this.data.charAt(this.pos);
+  }
+
+  next(): string {
+    let ch = this.data.charAt(this.pos++);
+    if (ch == '\n') {
+      this.line++;
+      this.col = 0;
+    } else {
+      this.col++;
+    }
+    return ch;
+  }
+
+  eof(): boolean {
+    return this.peek() == '';
+  }
 }
-//调用刚才声明的函数
-sayHello();
-*/
-let tokenArray: Token[] = [
-  { kind: TokenKind.Keyword, text: 'function' },
-  { kind: TokenKind.Identifier, text: 'sayHello' },
-  { kind: TokenKind.Separator, text: '(' },
-  { kind: TokenKind.Separator, text: ')' },
-  { kind: TokenKind.Separator, text: '{' },
-  { kind: TokenKind.Identifier, text: 'println' },
-  { kind: TokenKind.Separator, text: '(' },
-  { kind: TokenKind.StringLiteral, text: 'Hello World!' },
-  { kind: TokenKind.Separator, text: ')' },
-  { kind: TokenKind.Separator, text: ';' },
-  { kind: TokenKind.Separator, text: '}' },
-  { kind: TokenKind.Identifier, text: 'sayHello' },
-  { kind: TokenKind.Separator, text: '(' },
-  { kind: TokenKind.Separator, text: ')' },
-  { kind: TokenKind.Separator, text: ';' },
-  { kind: TokenKind.EOF, text: '' },
-];
 
 /**
- * 简化的词法分析器
- * 语法分析器从这里获取Token。
+ * 词法分析器。
+ * 词法分析器的接口像是一个流，词法解析是按需进行的。
+ * 支持下面两个操作：
+ * next(): 返回当前的Token，并移向下一个Token。
+ * peek(): 返回当前的Token，但不移动当前位置。
  */
 class Tokenizer {
-  private tokens: Token[];
-  private pos: number = 0;
+  stream: CharStream;
+  nextToken: Token = { kind: TokenKind.EOF, text: '' };
 
-  constructor(tokens: Token[]) {
-    this.tokens = tokens;
+  constructor(stream: CharStream) {
+    this.stream = stream;
   }
 
   next(): Token {
-    if (this.pos <= this.tokens.length) {
-      return this.tokens[this.pos++];
+    // 在第一次的时候，先parse一个Token
+    if (this.nextToken.kind == TokenKind.EOF && !this.stream.eof()) {
+      this.nextToken = this.getAToken();
+    }
+    let lastToken = this.nextToken;
+
+    // 往前走一个Token
+    this.nextToken = this.getAToken();
+    return lastToken;
+  }
+
+  peek(): Token {
+    if (this.nextToken.kind == TokenKind.EOF && !this.stream.eof()) {
+      this.nextToken = this.getAToken();
+    }
+    return this.nextToken;
+  }
+
+  // 从字符串流中获取一个新Token。
+  private getAToken(): Token {
+    this.skipWhiteSpaces();
+    if (this.stream.eof()) {
+      return { kind: TokenKind.EOF, text: '' };
     } else {
-      // 如果已经到了末尾，总是返回EOF
-      return this.tokens[this.pos];
+      let ch: string = this.stream.peek();
+      if (this.isLetter(ch) || this.isDigit(ch)) {
+        return this.parseIdentifer();
+      } else if (ch == '"') {
+        return this.parseStringLiteral();
+      } else if (ch == '(' || ch == ')' || ch == '{' || ch == '}' || ch == ';' || ch == ',') {
+        this.stream.next();
+        return { kind: TokenKind.Separator, text: ch };
+      } else if (ch == '/') {
+        this.stream.next();
+        let ch1 = this.stream.peek();
+        if (ch1 == '*') {
+          this.skipMultipleLineComments();
+          return this.getAToken();
+        } else if (ch1 == '/') {
+          this.skipSingleLineComment();
+          return this.getAToken();
+        } else if (ch1 == '=') {
+          this.stream.next();
+          return { kind: TokenKind.Operator, text: '/=' };
+        } else {
+          return { kind: TokenKind.Operator, text: '/' };
+        }
+      } else if (ch == '+') {
+        this.stream.next();
+        let ch1 = this.stream.peek();
+        if (ch1 == '+') {
+          this.stream.next();
+          return { kind: TokenKind.Operator, text: '++' };
+        } else if (ch1 == '=') {
+          this.stream.next();
+          return { kind: TokenKind.Operator, text: '+=' };
+        } else {
+          return { kind: TokenKind.Operator, text: '+' };
+        }
+      } else if (ch == '-') {
+        this.stream.next();
+        let ch1 = this.stream.peek();
+        if (ch1 == '-') {
+          this.stream.next();
+          return { kind: TokenKind.Operator, text: '--' };
+        } else if (ch1 == '=') {
+          this.stream.next();
+          return { kind: TokenKind.Operator, text: '-=' };
+        } else {
+          return { kind: TokenKind.Operator, text: '-' };
+        }
+      } else if (ch == '*') {
+        this.stream.next();
+        let ch1 = this.stream.peek();
+        if (ch1 == '=') {
+          this.stream.next();
+          return { kind: TokenKind.Operator, text: '*=' };
+        } else {
+          return { kind: TokenKind.Operator, text: '*' };
+        }
+      } else {
+        // 暂时去掉不能识别的字符
+        console.log("Unrecognized pattern meeting ': " + ch + "', at" + this.stream.line + ' col: ' + this.stream.col);
+        this.stream.next();
+        return this.getAToken();
+      }
     }
   }
 
-  position(): number {
-    return this.pos;
+  /**
+   * 跳过单行注释
+   */
+  private skipSingleLineComment() {
+    // 跳过第二个/，第一个之前已经跳过去了。
+    this.stream.next();
+
+    // 往后一直找到回车或者eof
+    while (this.stream.peek() != '\n' && !this.stream.eof()) {
+      this.stream.next();
+    }
   }
 
-  traceBack(newPos: number): void {
-    this.pos = newPos;
+  /**
+   * 跳过多行注释
+   */
+  private skipMultipleLineComments() {
+    // 跳过*，/之前已经跳过去了。
+    this.stream.next();
+
+    if (!this.stream.eof()) {
+      let ch1 = this.stream.next();
+      // 往后一直找到回车或者eof
+      while (!this.stream.eof()) {
+        let ch2 = this.stream.next();
+        if (ch1 == '*' && ch2 == '/') {
+          return;
+        }
+        ch1 = ch2;
+      }
+    }
+
+    // 如果没有匹配上，报错。
+    console.log(
+      "Failed to find matching */ for multiple line comments at ': " + this.stream.line + ' col: ' + this.stream.col,
+    );
+  }
+
+  /**
+   * 跳过空白字符
+   */
+  private skipWhiteSpaces() {
+    while (this.isWhiteSpace(this.stream.peek())) {
+      this.stream.next();
+    }
+  }
+
+  /**
+   * 字符串字面量。
+   * 目前只支持双引号，并且不支持转义。
+   */
+  private parseStringLiteral(): Token {
+    let token: Token = { kind: TokenKind.StringLiteral, text: '' };
+
+    // 第一个字符不用判断，因为在调用者那里已经判断过了
+    this.stream.next();
+
+    while (!this.stream.eof() && this.stream.peek() != '"') {
+      token.text += this.stream.next();
+    }
+
+    if (this.stream.peek() == '"') {
+      // 消化掉字符换末尾的引号
+      this.stream.next();
+    } else {
+      console.log('Expecting an " at line: ' + this.stream.line + ' col: ' + this.stream.col);
+    }
+
+    return token;
+  }
+
+  /**
+   * 解析标识符。从标识符中还要挑出关键字。
+   */
+  private parseIdentifer(): Token {
+    let token: Token = { kind: TokenKind.Identifier, text: '' };
+
+    // 第一个字符不用判断，因为在调用者那里已经判断过了
+    token.text += this.stream.next();
+
+    // 读入后序字符
+    while (!this.stream.eof() && this.isLetterDigitOrUnderScore(this.stream.peek())) {
+      token.text += this.stream.next();
+    }
+
+    // 识别出关键字
+    if (token.text == 'function') {
+      token.kind = TokenKind.Keyword;
+    }
+
+    return token;
+  }
+
+  private isLetterDigitOrUnderScore(ch: string): boolean {
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_';
+  }
+
+  private isLetter(ch: string): boolean {
+    return (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+  }
+
+  private isDigit(ch: string): boolean {
+    return ch >= '0' && ch <= '9';
+  }
+
+  private isWhiteSpace(ch: string): boolean {
+    return ch == ' ' || ch == '\n' || ch == '\t';
   }
 }
 
@@ -106,21 +295,13 @@ abstract class AstNode {
  * 语句
  * 其子类包括函数声明和函数调用
  */
-abstract class Statement extends AstNode {
-  static isStatementNode(node: any): node is Statement {
-    if (!node) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-}
+abstract class Statement extends AstNode {}
 
 /**
  * 程序节点，也是AST的根节点
  */
 class Prog extends AstNode {
-  stmts: Statement[]; //程序中可以包含多个语句
+  stmts: Statement[] = []; // 程序中可以包含多个语句
   constructor(stmts: Statement[]) {
     super();
     this.stmts = stmts;
@@ -161,17 +342,6 @@ class FunctionBody extends AstNode {
     this.stmts = stmts;
   }
 
-  static isFunctionBodyNode(node: any): node is FunctionBody {
-    if (!node) {
-      return false;
-    }
-    if (Object.getPrototypeOf(node) == FunctionBody.prototype) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-
   public dump(prefix: string): void {
     console.log(prefix + 'FunctionBody');
     this.stmts.forEach((x) => x.dump(prefix + '\t'));
@@ -189,17 +359,6 @@ class FunctionCall extends Statement {
     super();
     this.name = name;
     this.parameters = parameters;
-  }
-
-  static isFunctionCallNode(node: any): node is FunctionCall {
-    if (!node) {
-      return false;
-    }
-    if (Object.getPrototypeOf(node) == FunctionCall.prototype) {
-      return true;
-    } else {
-      return false;
-    }
   }
 
   public dump(prefix: string): void {
@@ -222,27 +381,24 @@ class Parser {
    */
   parseProg(): Prog {
     let stmts: Statement[] = [];
-    let stmt: Statement | null | void = null;
-    while (true) {
-      //每次循环解析一个语句
-      //尝试一下函数声明
-      stmt = this.parseFunctionDecl();
-      if (Statement.isStatementNode(stmt)) {
-        stmts.push(stmt);
-        continue;
+    let stmt: Statement | null = null;
+    let token = this.tokenizer.peek();
+
+    while (token.kind != TokenKind.EOF) {
+      if (token.kind == TokenKind.Keyword && token.text == 'function') {
+        stmt = this.parseFunctionDecl();
+      } else if (token.kind == TokenKind.Identifier) {
+        stmt = this.parseFunctionCall();
       }
 
-      //如果前一个尝试不成功，那么再尝试一下函数调用
-      stmt = this.parseFunctionCall();
-      if (Statement.isStatementNode(stmt)) {
+      if (stmt != null) {
         stmts.push(stmt);
-        continue;
+        console.log('success');
+      } else {
+        //console.log("Unrecognized token: ");
+        // console.log(token);
       }
-
-      //如果都没成功，那就结束
-      if (stmt == null) {
-        break;
-      }
+      token = this.tokenizer.peek();
     }
     return new Prog(stmts);
   }
@@ -251,36 +407,42 @@ class Parser {
    * 解析函数声明
    * 语法规则：
    * functionDecl: "function" Identifier "(" ")"  functionBody;
+   * 返回值：
+   * null-意味着解析过程出错。
    */
-  parseFunctionDecl(): FunctionDecl | null | void {
-    let oldPos: number = this.tokenizer.position();
-    let t: Token = this.tokenizer.next();
-    if (t.kind == TokenKind.Keyword && t.text == 'function') {
-      t = this.tokenizer.next();
-      if (t.kind == TokenKind.Identifier) {
-        //读取"("和")"
-        let t1 = this.tokenizer.next();
-        if (t1.text == '(') {
-          let t2 = this.tokenizer.next();
-          if (t2.text == ')') {
-            let functionBody = this.parseFunctionBody();
-            if (FunctionBody.isFunctionBodyNode(functionBody)) {
-              //如果解析成功，从这里返回
-              return new FunctionDecl(t.text, functionBody);
-            }
+  parseFunctionDecl(): FunctionDecl | null {
+    console.log('in FunctionDecl');
+    // 跳过关键字'function'
+    this.tokenizer.next();
+
+    let t = this.tokenizer.next();
+    if (t.kind == TokenKind.Identifier) {
+      // 读取()
+      let t1 = this.tokenizer.next();
+      if (t1.text == '(') {
+        let t2 = this.tokenizer.next();
+        if (t2.text == ')') {
+          let functionBody = this.parseFunctionBody();
+          if (functionBody != null) {
+            //如果解析成功，从这里返回
+            return new FunctionDecl(t.text, functionBody);
           } else {
-            console.log("Expecting ')' in FunctionDecl, while we got a " + t.text);
-            return;
+            console.log('Error parsing FunctionBody in FunctionDecl');
+            return null;
           }
         } else {
-          console.log("Expecting '(' in FunctionDecl, while we got a " + t.text);
-          return;
+          console.log("Expecting ')' in FunctionDecl, while we got a " + t.text);
+          return null;
         }
+      } else {
+        console.log("Expecting '(' in FunctionDecl, while we got a " + t.text);
+        return null;
       }
+    } else {
+      console.log('Expecting a function name, while we got a ' + t.text);
+      return null;
     }
 
-    //如果解析不成功，回溯，返回null。
-    this.tokenizer.traceBack(oldPos);
     return null;
   }
 
@@ -289,31 +451,30 @@ class Parser {
    * 语法规则：
    * functionBody : '{' functionCall* '}' ;
    */
-  parseFunctionBody(): FunctionBody | null | void {
-    let oldPos: number = this.tokenizer.position();
+  parseFunctionBody(): FunctionBody | null {
     let stmts: FunctionCall[] = [];
     let t: Token = this.tokenizer.next();
     if (t.text == '{') {
-      let functionCall = this.parseFunctionCall();
-      while (FunctionCall.isFunctionCallNode(functionCall)) {
-        //解析函数体
-        stmts.push(functionCall);
-        functionCall = this.parseFunctionCall();
+      while (this.tokenizer.peek().kind == TokenKind.Identifier) {
+        let functionCall = this.parseFunctionCall();
+        if (functionCall != null) {
+          stmts.push(functionCall);
+        } else {
+          console.log('Error parsing a FunctionCall in FunctionBody.');
+          return null;
+        }
       }
       t = this.tokenizer.next();
       if (t.text == '}') {
         return new FunctionBody(stmts);
       } else {
         console.log("Expecting '}' in FunctionBody, while we got a " + t.text);
-        return;
+        return null;
       }
     } else {
       console.log("Expecting '{' in FunctionBody, while we got a " + t.text);
-      return;
+      return null;
     }
-
-    //如果解析不成功，回溯，返回null。
-    this.tokenizer.traceBack(oldPos);
     return null;
   }
 
@@ -323,21 +484,20 @@ class Parser {
    * functionCall : Identifier '(' parameterList? ')' ;
    * parameterList : StringLiteral (',' StringLiteral)* ;
    */
-  parseFunctionCall(): FunctionCall | null | void {
-    let oldPos: number = this.tokenizer.position();
+  parseFunctionCall(): FunctionCall | null {
     let params: string[] = [];
     let t: Token = this.tokenizer.next();
     if (t.kind == TokenKind.Identifier) {
       let t1: Token = this.tokenizer.next();
       if (t1.text == '(') {
         let t2: Token = this.tokenizer.next();
-        //循环，读出所有
+        //循环，读出所有参数
         while (t2.text != ')') {
           if (t2.kind == TokenKind.StringLiteral) {
             params.push(t2.text);
           } else {
             console.log('Expecting parameter in FunctionCall, while we got a ' + t2.text);
-            return; //出错时，就不在错误处回溯了。
+            return null;
           }
           t2 = this.tokenizer.next();
           if (t2.text != ')') {
@@ -345,7 +505,7 @@ class Parser {
               t2 = this.tokenizer.next();
             } else {
               console.log('Expecting a comma in FunctionCall, while we got a ' + t2.text);
-              return;
+              return null;
             }
           }
         }
@@ -354,20 +514,18 @@ class Parser {
         if (t2.text == ';') {
           return new FunctionCall(t.text, params);
         } else {
-          console.log('Expecting a comma in FunctionCall, while we got a ' + t2.text);
-          return;
+          console.log('Expecting a semicolon in FunctionCall, while we got a ' + t2.text);
+          return null;
         }
       }
     }
 
-    //如果解析不成功，回溯，返回null。
-    this.tokenizer.traceBack(oldPos);
     return null;
   }
 }
 
 /**
- * 对AST做遍历的Vistor。
+ * 对 AST 做遍历的 Visitor。
  * 这是一个基类，定义了缺省的遍历方式。子类可以覆盖某些方法，修改遍历方式。
  */
 abstract class AstVisitor {
@@ -405,7 +563,7 @@ abstract class AstVisitor {
 // 对函数调用做引用消解，也就是找到函数的声明。
 
 /**
- * 遍历AST。如果发现函数调用，就去找它的定义。
+ * 遍历 AST。如果发现函数调用，就去找它的定义。
  */
 class RefResolver extends AstVisitor {
   prog: Prog | null = null;
@@ -436,7 +594,7 @@ class RefResolver extends AstVisitor {
       functionCall.definition = functionDecl;
     } else {
       if (functionCall.name != 'println') {
-        //系统内置函数不用报错
+        // 系统内置函数不用报错
         console.log('Error: cannot find definition of function ' + functionCall.name);
       }
     }
@@ -457,7 +615,7 @@ class RefResolver extends AstVisitor {
 // 解释器
 
 /**
- * 遍历AST，执行函数调用。
+ * 遍历 AST，执行函数调用。
  */
 class Intepretor extends AstVisitor {
   visitProg(prog: Prog): any {
@@ -499,13 +657,18 @@ class Intepretor extends AstVisitor {
 /////////////////////////////////////////////////////////////////////////
 // 主程序
 
-function compileAndRun() {
+function compileAndRun(program: string) {
+  // 源代码
+  console.log('源代码:');
+  console.log(program);
+
   // 词法分析
-  let tokenizer = new Tokenizer(tokenArray);
-  console.log('\n程序所使用的Token:');
-  for (let token of tokenArray) {
-    console.log(token);
+  console.log('\n词法分析结果:');
+  let tokenizer = new Tokenizer(new CharStream(program));
+  while (tokenizer.peek().kind != TokenKind.EOF) {
+    console.log(tokenizer.next());
   }
+  tokenizer = new Tokenizer(new CharStream(program)); //重置tokenizer,回到开头。
 
   // 语法分析
   let prog: Prog = new Parser(tokenizer).parseProg();
@@ -514,7 +677,7 @@ function compileAndRun() {
 
   // 语义分析
   new RefResolver().visitProg(prog);
-  console.log('\n语义分析后的AST，注意自定义函数的调用已被消解:');
+  console.log('\n语法分析后的AST，注意自定义函数的调用已被消解:');
   prog.dump('');
 
   // 运行程序
@@ -523,5 +686,21 @@ function compileAndRun() {
   console.log('程序返回值：' + retVal);
 }
 
-// 运行示例
-compileAndRun();
+// 处理命令行参数，从文件里读取源代码
+import * as process from 'process';
+
+// 要求命令行的第三个参数，一定是一个文件名。
+if (process.argv.length < 3) {
+  console.log('Usage: node ' + process.argv[1] + ' FILENAME');
+  process.exit(1);
+}
+
+// 读取源代码
+// @ts-ignore
+let fs = require('fs');
+let filename = process.argv[2];
+
+fs.readFile(filename, 'utf8', function (err: any, data: string) {
+  if (err) throw err;
+  compileAndRun(data);
+});
