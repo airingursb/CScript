@@ -1,5 +1,5 @@
 {
-  "name": "@cscript/demo",
+  "name": "@cscript/ast-interpreter",
   "version": "0.0.1",
   "description": "",
   "main": "dist/index.js",
@@ -7,7 +7,7 @@
   "types": "es/index.d.ts",
   "scripts": {
     "lint:ts": "npx tsc -p tsconfig.json",
-    "build": "rm -rf ./dist && tsc ./src/index.ts --outDir ./dist --module commonjs"
+    "build": "rm -rf ./dist && tsc ./src/index.ts --outDir ./dist --module commonjs --target es2015"
   },
   "author": "Airing",
   "license": "MIT",

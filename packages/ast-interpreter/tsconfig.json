@@ -7,7 +7,7 @@
     "typeRoots": [
       "../../typings/index.d.ts"
     ],
-    "target": "es5",
+    "target": "es2015",
     "noImplicitAny": false,
     "declaration": true,
     "moduleResolution": "node",

@@ -2,9 +2,11 @@
 function hello() {
   let a = 1;
   let b = 2;
-  let c: number = a + b;
-  let d: string = "hello";
+  let c = a + b;
+  let d = "hello";
   println(d + ":" + c);
+  return c;
 }
 
-hello();
+let a = hello();
+println("a: " + a);
