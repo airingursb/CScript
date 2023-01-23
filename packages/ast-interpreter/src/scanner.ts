@@ -39,7 +39,7 @@ export class Token {
   }
 }
 
-// Token（以及AST）在源代码中的位置，便于报错和调试
+//Token（以及AST）在源代码中的位置，便于报错和调试
 export class Position {
   begin: number; // 开始于哪个字符，从1开始计数
   end: number; // 结束于哪个字符
@@ -107,12 +107,12 @@ export class CharStream {
  * peek2(): 预读第二个Token。
  */
 export class Scanner {
-  //采用一个array，能预存多个Token，从而支持预读多个Token
+  // 采用一个array，能预存多个Token，从而支持预读多个Token
   tokens: Array<Token> = new Array<Token>();
-  //作为输入的字符串流
+  // 作为输入的字符串流
   stream: CharStream;
-  //前一个Token的位置
-  private lastPos: Position = new Position(0, 0, 0, 0); //这个Position是不合法的，只是为了避免null。
+  // 前一个Token的位置
+  private lastPos: Position = new Position(0, 0, 0, 0); // 这个Position是不合法的，只是为了避免null。
 
   private KeywordMap: Map<string, Keyword> = new Map([
     ['function', Keyword.Function],
@@ -208,7 +208,6 @@ export class Scanner {
   }
 
   // 从字符串流中获取一个新Token。
-  // eslint-disable-next-line complexity
   private getAToken(): Token {
     // 跳过所有空白字符
     this.skipWhiteSpaces();
@@ -266,14 +265,14 @@ export class Scanner {
         let ch1 = this.stream.peek();
         let literal: string = '';
         if (ch == '0') {
-          //暂不支持八进制、二进制、十六进制
+          // 暂不支持八进制、二进制、十六进制
           if (!(ch1 >= '1' && ch1 <= '9')) {
             literal = '0';
           } else {
             console.log(
               '0 cannot be followed by other digit now, at line: ' + this.stream.line + ' col: ' + this.stream.col,
             );
-            //暂时先跳过去
+            // 暂时先跳过去
             this.stream.next();
             return this.getAToken();
           }
@@ -306,7 +305,7 @@ export class Scanner {
         this.stream.next();
         let ch1 = this.stream.peek();
         if (this.isDigit(ch1)) {
-          // 小数字面量
+          //小数字面量
           let literal = '.';
           while (this.isDigit(ch1)) {
             ch = this.stream.next();
@@ -791,12 +790,12 @@ export enum Keyword {
   Package,
   Protected,
   Static,
-  //more
+  // more
   Any,
   String,
   Number,
   Boolean,
   Symbol,
-  //值
+  // 值
   Undefined,
 }

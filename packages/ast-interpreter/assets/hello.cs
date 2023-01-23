@@ -10,3 +10,7 @@ function hello() {
 
 let a = hello();
 println("a: " + a);
+
+for (let i = 0; i < 10; i++) {
+  println("i:" + i);
+}

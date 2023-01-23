@@ -48,11 +48,11 @@ export class FunctionSymbol extends Symbol {
 
   /**
    * visitor模式
-   * @param vistor
-   * @param additional 额外需要传递给visitor的信息。
+   * @param visitor
+   * @param additional 额外需要传递给 visitor 的信息。
    */
-  accept(vistor: SymbolVisitor, additional: any = undefined): any {
-    vistor.visitFunctionSymbol(this, additional);
+  accept(visitor: SymbolVisitor, additional: any = undefined): any {
+    visitor.visitFunctionSymbol(this, additional);
   }
 
   //获取参数数量

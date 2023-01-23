@@ -11,9 +11,9 @@ import { Position } from './scanner';
 
 export class CompilerError {
   msg: string;
-  isWarning: boolean; //如果是警告级，设为true。否则为错误级。
-  beginPos: Position; //在源代码中的第一个Token的位置
-  // endPos:Position;   //在源代码中的最后一个Token的位置
+  isWarning: boolean; // 如果是警告级，设为true。否则为错误级。
+  beginPos: Position; // 在源代码中的第一个Token的位置
+  // endPos:Position;   // 在源代码中的最后一个Token的位置
 
   constructor(msg: string, beginPos: Position, /* endPos:Position, */ isWarning = false) {
     this.msg = msg;

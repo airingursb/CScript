@@ -13,8 +13,8 @@ import { SysTypes, Type } from './types';
  * AST基类
  */
 export abstract class AstNode {
-  beginPos: Position; //在源代码中的第一个Token的位置
-  endPos: Position; //在源代码中的最后一个Token的位置
+  beginPos: Position; // 在源代码中的第一个Token的位置
+  endPos: Position; // 在源代码中的最后一个Token的位置
   isErrorNode: boolean; // = false;
 
   constructor(beginPos: Position, endPos: Position, isErrorNode: boolean) {
@@ -23,7 +23,7 @@ export abstract class AstNode {
     this.isErrorNode = isErrorNode;
   }
 
-  //visitor模式中，用于接受vistor的访问。
+  // visitor 模式中，用于接受 visitor 的访问。
   public abstract accept(visitor: AstVisitor, additional: any): any;
 }
 
@@ -40,7 +40,7 @@ export abstract class Statement extends AstNode {}
 export abstract class Decl extends AstNode {
   name: string;
 
-  constructor(beginPos: Position, endPos: Position, name: string, isErrorNode: boolean) {
+  protected constructor(beginPos: Position, endPos: Position, name: string, isErrorNode: boolean) {
     super(beginPos, endPos, isErrorNode);
     this.name = name;
   }
@@ -208,7 +208,7 @@ export class ExpressionStatement extends Statement {
 }
 
 /**
- * Return语句
+ * Return 语句
  */
 export class ReturnStatement extends Statement {
   exp: Expression | null = null;
@@ -290,12 +290,12 @@ export class ForStatement extends Statement {
  */
 export abstract class Expression extends AstNode {
   theType: Type | null = null;
-  shouldBeLeftValue: boolean = false; //当前位置需要一个左值。赋值符号、点符号的左边，需要左值。
-  isLeftValue: boolean = false; //是否是一个左值
-  constValue: any = undefined; //本表达式的常量值。在常量折叠、流程分析等时候有用。
+  shouldBeLeftValue: boolean = false; // 当前位置需要一个左值。赋值符号、点符号的左边，需要左值。
+  isLeftValue: boolean = false; // 是否是一个左值
+  constValue: any = undefined; // 本表达式的常量值。在常量折叠、流程分析等时候有用。
 
-  //推断出来的类型。
-  //这个类型一般是theType的子类型。比如，theType是any，但inferredType是number.
+  // 推断出来的类型。
+  // 这个类型一般是theType的子类型。比如，theType是any，但inferredType是number.
 
   inferredType: Type | null = null;
 }
@@ -440,7 +440,7 @@ export class DecimalLiteral extends Expression {
 }
 
 /**
- * null字面量
+ * null 字面量
  */
 export class NullLiteral extends Expression {
   value: null = null;
@@ -457,7 +457,7 @@ export class NullLiteral extends Expression {
 }
 
 /**
- * Boolean字面量
+ * Boolean 字面量
  */
 export class BooleanLiteral extends Expression {
   value: boolean;
@@ -506,7 +506,7 @@ export class ErrorStmt extends Statement {
 //Visitor
 
 /**
- * 对AST做遍历的Vistor。
+ * 对AST做遍历的Visitor。
  * 这是一个基类，定义了缺省的遍历方式。子类可以覆盖某些方法，修改遍历方式。
  */
 export abstract class AstVisitor {

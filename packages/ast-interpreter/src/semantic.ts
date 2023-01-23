@@ -15,6 +15,7 @@ import {
   AstVisitor,
   Binary,
   Block,
+  ForStatement,
   FunctionCall,
   FunctionDecl,
   Prog,
@@ -61,8 +62,8 @@ export class SemanticError extends CompilerError {
 }
 
 abstract class SemanticAstVisitor extends AstVisitor {
-  errors: CompilerError[] = []; // 语义错误
-  warnings: CompilerError[] = []; // 语义报警信息
+  errors: CompilerError[] = []; //语义错误
+  warnings: CompilerError[] = []; //语义报警信息
 
   addError(msg: string, node: AstNode) {
     this.errors.push(new SemanticError(msg, node));
@@ -127,7 +128,7 @@ class Enter extends SemanticAstVisitor {
     let lastFunctionSym = this.functionSym;
     this.functionSym = sym;
 
-    // 创建新的Scope，用来存放参数
+    // 创建新的 Scope，用来存放参数
     let oldScope = currentScope;
     this.scope = new Scope(oldScope);
     functionDecl.scope = this.scope;
@@ -138,7 +139,7 @@ class Enter extends SemanticAstVisitor {
     // 恢复当前函数
     this.functionSym = lastFunctionSym;
 
-    // 恢复原来的Scope
+    // 恢复原来的 Scope
     this.scope = oldScope;
   }
 
@@ -148,15 +149,15 @@ class Enter extends SemanticAstVisitor {
    * @param block
    */
   visitBlock(block: Block): any {
-    //创建下一级scope
+    // 创建下一级 scope
     let oldScope = this.scope;
     this.scope = new Scope(this.scope);
     block.scope = this.scope;
 
-    //调用父类的方法，遍历所有的语句
+    // 调用父类的方法，遍历所有的语句
     super.visitBlock(block);
 
-    //重新设置当前的Scope
+    // 重新设置当前的 Scope
     this.scope = oldScope;
   }
 
@@ -169,13 +170,30 @@ class Enter extends SemanticAstVisitor {
     if (currentScope.hasSymbol(variableDecl.name)) {
       this.addError('Dumplicate symbol: ' + variableDecl.name, variableDecl);
     }
-    // 把变量加入当前的符号表
+    //把变量加入当前的符号表
     let sym = new VarSymbol(variableDecl.name, variableDecl.theType);
     variableDecl.sym = sym;
     currentScope.enter(variableDecl.name, sym);
 
-    // 把本地变量也加入函数符号中，可用于后面生成代码
+    //把本地变量也加入函数符号中，可用于后面生成代码
     this.functionSym?.vars.push(sym);
+  }
+
+  /**
+   * 对于for循环来说，由于可以在for的init部分声明变量，所以要新建一个Scope。
+   * @param forStmt
+   */
+  visitForStatement(forStmt: ForStatement): any {
+    // 创建下一级scope
+    let oldScope = this.scope;
+    this.scope = new Scope(this.scope);
+    forStmt.scope = this.scope;
+
+    // 调用父类的方法，遍历所有的语句
+    super.visitForStatement(forStmt);
+
+    // 重新设置当前的Scope
+    this.scope = oldScope;
   }
 }
 
@@ -191,22 +209,22 @@ class Enter extends SemanticAstVisitor {
 class RefResolver extends SemanticAstVisitor {
   scope: Scope | null = null; //当前的Scope
 
-  //每个Scope已经声明了的变量的列表
+  // 每个Scope已经声明了的变量的列表
   declaredVarsMap: Map<Scope, Map<string, VarSymbol>> = new Map();
 
   visitFunctionDecl(functionDecl: FunctionDecl): any {
-    //1.修改scope
+    // 1. 修改 scope
     let oldScope = this.scope;
     this.scope = functionDecl.scope as Scope;
     assert(this.scope != null, 'Scope不可为null');
 
-    //为已声明的变量设置一个存储区域
+    // 为已声明的变量设置一个存储区域
     this.declaredVarsMap.set(this.scope, new Map());
 
-    //2.遍历下级节点
+    // 2. 遍历下级节点
     super.visitFunctionDecl(functionDecl);
 
-    //3.重新设置scope
+    // 3. 重新设置 scope
     this.scope = oldScope;
   }
 
@@ -215,18 +233,34 @@ class RefResolver extends SemanticAstVisitor {
    * @param block
    */
   visitBlock(block: Block): any {
-    //1.修改scope
+    // 1. 修改 scope
     let oldScope = this.scope;
     this.scope = block.scope as Scope;
     assert(this.scope != null, 'Scope不可为null');
 
-    //为已声明的变量设置一个存储区域
+    // 为已声明的变量设置一个存储区域
     this.declaredVarsMap.set(this.scope, new Map());
 
-    //2.遍历下级节点
+    // 2. 遍历下级节点
     super.visitBlock(block);
 
-    //3.重新设置scope
+    // 3. 重新设置 scope
+    this.scope = oldScope;
+  }
+
+  visitForStatement(forStmt: ForStatement): any {
+    // 1. 修改scope
+    let oldScope = this.scope;
+    this.scope = forStmt.scope as Scope;
+    assert(this.scope != null, 'Scope不可为null');
+
+    // 为已声明的变量设置一个存储区域
+    this.declaredVarsMap.set(this.scope, new Map());
+
+    // 2. 遍历下级节点
+    super.visitForStatement(forStmt);
+
+    // 3. 重新设置scope
     this.scope = oldScope;
   }
 
