@@ -1,0 +1,25 @@
+{
+  "name": "@cscript/vm",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "types": "es/index.d.ts",
+  "scripts": {
+    "build": "make clean && make"
+  },
+  "author": "Airing",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airingursb/CScript"
+  },
+  "directories": {
+    "src": "src"
+  },
+  "files": [
+    "dist",
+    "es",
+    "README.md"
+  ]
+}

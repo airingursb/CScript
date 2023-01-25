@@ -1051,7 +1051,7 @@ export class VM {
           continue;
 
         default:
-          console.log('Unknown op code: ' + opCode.toString(16));
+          console.log('Unknown op code: ' + opCode?.toString(16));
           return -2;
       }
     }

@@ -1,3 +1,7 @@
+# C
+*.o
+*.s
+
 # Logs
 logs
 *.log
