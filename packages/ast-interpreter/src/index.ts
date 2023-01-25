@@ -1,13 +1,4 @@
-/**
- * 第6节
- * 知识点：
- * 1.条件语句和循环语句
- * 2.块作用域
- * 3.如何避免
- */
-
-//处理命令行参数，从文件里读取源代码
-// @ts-ignore
+// 处理命令行参数，从文件里读取源代码
 import * as process from 'process';
 
 import {
@@ -469,7 +460,6 @@ if (process.argv.length < 3) {
 
 // 编译和运行源代码
 let fileName = process.argv[2] as string;
-// @ts-ignore
 let fs = require('fs');
 fs.readFile(fileName, 'utf8', function (err: any, data: string) {
   if (err) throw err;

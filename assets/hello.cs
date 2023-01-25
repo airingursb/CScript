@@ -1,6 +1,6 @@
 // 词法解析+语法解析用例
 function hello() {
-  let a = 1;
+  let a:number = 1;
   let b = 2;
   let c = a + b;
   let d = "hello";

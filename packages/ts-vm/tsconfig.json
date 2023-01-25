@@ -5,7 +5,8 @@
     "module": "commonjs",
     "baseUrl": "./",
     "typeRoots": [
-      "../../typings/index.d.ts"
+      "../../typings/index.d.ts",
+      "node_modules/@types"
     ],
     "target": "es2015",
     "noImplicitAny": false,

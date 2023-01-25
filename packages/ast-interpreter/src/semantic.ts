@@ -7,7 +7,6 @@
  * 3. 简单的作用域
  */
 
-// @ts-ignore
 import { assert } from 'console';
 
 import {
