@@ -9,7 +9,7 @@
     "lint": "eslint . --ext .ts,.tsx --quiet",
     "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "lint:ts": "sh ./scripts/lint-ts.sh",
-    "exec:ts": "sh ./scripts/exec-ts.sh",
+    "exec": "sh scripts/exec.sh",
     "build": "sh ./scripts/build.sh"
   },
   "keywords": [],

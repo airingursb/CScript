@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "strict": true,
+    "module": "commonjs",
+    "baseUrl": "./",
+    "typeRoots": [
+      "../../typings/index.d.ts"
+    ],
+    "target": "es2015",
+    "noImplicitAny": false,
+    "declaration": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "noEmitHelpers": false,
+    "jsx": "preserve",
+    "sourceMap": true,
+    "lib": [
+      "esnext",
+      "DOM"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "outDir": "./es",
+    "rootDir": "./src",
+    "emitDeclarationOnly": true
+  },
+  "include": [
+    "src",
+    "../../typings"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

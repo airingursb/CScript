@@ -1,0 +1,30 @@
+{
+  "name": "@cscript/ts-vm",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "es/index.js",
+  "types": "es/index.d.ts",
+  "scripts": {
+    "lint:ts": "npx tsc -p tsconfig.json",
+    "build": "rm -rf ./dist && tsc ./src/index.ts --outDir ./dist --module commonjs --target es2015"
+  },
+  "author": "Airing",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/airingursb/CScript"
+  },
+  "directories": {
+    "src": "src",
+    "test": "__tests__"
+  },
+  "files": [
+    "dist",
+    "es",
+    "README.md"
+  ],
+  "devDependencies": {
+    "@types/node": "^18.0.2"
+  }
+}
