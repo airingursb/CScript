@@ -7,7 +7,7 @@
   "types": "es/index.d.ts",
   "scripts": {
     "lint:ts": "npx tsc -p tsconfig.json",
-    "build": "rm -rf ./dist && tsc ./src/index.ts --outDir ./dist --module commonjs --target es2015"
+    "build": "rm -rf ./dist && tsc"
   },
   "author": "Airing",
   "license": "MIT",

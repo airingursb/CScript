@@ -3,7 +3,7 @@
     "allowJs": true,
     "strict": true,
     "module": "commonjs",
-    "baseUrl": "./",
+    "baseUrl": "./src/index.ts",
     "typeRoots": [
       "../../typings/index.d.ts",
       "node_modules/@types"
@@ -23,9 +23,8 @@
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "outDir": "./es",
+    "outDir": "./dist",
     "rootDir": "./src",
-    "emitDeclarationOnly": true
   },
   "include": [
     "src",
